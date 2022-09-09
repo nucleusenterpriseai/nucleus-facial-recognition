@@ -4,11 +4,6 @@
 
     <uses-permission android:name="android.permission.CAMERA" />
     <application>
-        <activity android:name="com.yxf.facerecognitionsample.FaceRecognitionActivity"
-            android:exported="false"
-            />
-        <activity android:name="com.yxf.facerecognitionsample.AddFaceActivity"
-            android:exported="false"
-            />
+
     </application>
 </manifest>

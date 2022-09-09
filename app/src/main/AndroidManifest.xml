@@ -22,6 +22,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name="com.yxf.facerecognitionsample.FaceRecognitionActivity"
+            android:exported="false"
+            />
+        <activity android:name="com.yxf.facerecognitionsample.AddFaceActivity"
+            android:exported="false"
+            />
     </application>
 
 </manifest>
