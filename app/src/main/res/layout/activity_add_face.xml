@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <androidx.camera.view.PreviewView
+        android:id="@+id/preview"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintDimensionRatio="1:1"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/add_face"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Add face"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/preview" />
+
+    <Button
+        android:id="@+id/clear_face"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Clear Face"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/add_face" />
+
+    <View
+        android:id="@+id/square"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_margin="30dp"
+        android:background="@drawable/white_stroke_r5"
+        app:layout_constraintBottom_toBottomOf="@id/preview"
+        app:layout_constraintLeft_toLeftOf="@id/preview"
+        app:layout_constraintRight_toRightOf="@id/preview"
+        app:layout_constraintTop_toTopOf="@id/preview" />
+
+    <View
+        android:id="@+id/rect"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/white_stroke_r5"
+        app:layout_constraintLeft_toLeftOf="@id/preview"
+        app:layout_constraintTop_toTopOf="@id/preview" />
+
+    <ImageView
+        android:id="@+id/face_image"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/preview" />
+
+    <TextView
+        android:id="@+id/hint"
+        android:gravity="center"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="提示"
+        android:textColor="@android:color/holo_orange_light"
+        android:textSize="24sp"
+        app:layout_constraintBottom_toTopOf="@id/square"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
