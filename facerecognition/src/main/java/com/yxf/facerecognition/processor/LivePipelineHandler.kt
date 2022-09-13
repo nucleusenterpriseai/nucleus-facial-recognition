@@ -42,7 +42,6 @@ class LivePipelineHandler(private val failedHint: String, private val context: A
     }
 
     override fun handle(face: Face, image: Image, faceProcessor: FaceProcessor): Boolean {
-        Log.d("Debug.face", "face id: ${face.trackingId}")
         if (lastId != face.trackingId) {
             startTime = System.currentTimeMillis()
             lastId = face.trackingId ?: -1

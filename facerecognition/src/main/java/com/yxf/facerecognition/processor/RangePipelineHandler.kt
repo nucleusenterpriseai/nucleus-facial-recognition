@@ -30,7 +30,6 @@ class RangePipelineHandler(failedHint: String, private val margin: Int = 0) : Hi
         if (result.bottom + margin > image.height) {
             return false
         }
-        Log.d("Debug.range", "image(${image.width}:${image.height}), rotate rect: $result, source rect: ${face.boundingBox}")
         return true
     }
 

@@ -15,6 +15,8 @@ import kotlin.math.sqrt
 
 object FaceRecognitionUtil {
 
+    const val TAG = "FR.Util"
+
     fun imageToYuvImageData(image: Image, save: ByteArray? = null): ByteArray {
         require(!(image.format !== ImageFormat.YUV_420_888)) { "Invalid image format" }
 
@@ -105,7 +107,7 @@ object FaceRecognitionUtil {
         var bitmap = yuvImageDataToBitmap(yuvData, image.width, image.height)
         if (rotateRect.top < 0 || rotateRect.left < 0 || rotateRect.right > image.width || rotateRect.bottom > image.height) {
             Log.d(
-                "Debug.util",
+                TAG,
                 "image(${image.width}:${image.height}), rotate rect: $rotateRect, source rect: ${face.boundingBox}, fix rect: $fixBound"
             )
         }

@@ -19,7 +19,7 @@ import com.google.mlkit.vision.face.FaceDetectorOptions
 import com.yxf.facerecognition.processor.FaceProcessor
 import com.yxf.facerecognition.tflite.TensorFlowLiteAnalyzer
 import java.io.File
-import java.util.concurrent.Executors
+import java.util.concurrent.*
 
 @Keep
 class FaceRecognition private constructor(private val builder: Builder) {
@@ -39,18 +39,55 @@ class FaceRecognition private constructor(private val builder: Builder) {
 
     internal val analysis by lazy { TensorFlowLiteAnalyzer(context) }
 
-    internal val executor = Executors.newSingleThreadExecutor(/*ThreadFactory {
-        val delegate = Executors.defaultThreadFactory()
-        val thread = delegate.newThread(it)
-        thread.setUncaughtExceptionHandler { t, e ->
-            reportException(e)
+    internal val executor = /*Executors.newSingleThreadExecutor(ThreadFactory {
+        val wrap = Runnable {
+            try {
+                it.run()
+            } catch (e: Throwable) {
+                reportException(e)
+            }
         }
-        return@ThreadFactory thread
-    }*/)
+        return@ThreadFactory Thread(wrap, "fr-thread")
+    })*/
+        object: ThreadPoolExecutor(1, 1, 60, TimeUnit.SECONDS, LinkedBlockingQueue<Runnable>()) {
+
+            override fun afterExecute(r: Runnable?, t: Throwable?) {
+                super.afterExecute(r, t)
+                var e: Throwable? = null
+                if (t == null && r is Future<*>) {
+                    try {
+                        val future = r as Future<*>
+                        if (future.isDone) {
+                            future.get()
+                        }
+                    } catch (ce: CancellationException) {
+                        e = ce
+                    } catch (ee: ExecutionException) {
+                        e = ee.cause
+                    } catch (ie: InterruptedException) {
+                        Thread.currentThread().interrupt()
+                    }
+                } else {
+                    e = t
+                }
+                if (e != null) {
+                    reportException(e)
+                }
+            }
+
+        }
 
     private val detector = FaceDetection.getClient(builder.options)
 
     val faceModelManager = FaceModelManager(builder.modelPath, builder.modelId, this)
+
+
+    internal fun submitToThreadPool(task: Runnable) {
+        if (executor.isShutdown) {
+            return
+        }
+        executor.submit(task)
+    }
 
     @SuppressLint("UnsafeOptInUsageError")
     fun start() {
@@ -75,33 +112,37 @@ class FaceRecognition private constructor(private val builder: Builder) {
                 val ii = InputImage.fromMediaImage(image, proxy.imageInfo.rotationDegrees)
                 val task = detector.process(ii)
                 task.addOnSuccessListener { list ->
-                    try {
-                        if (list.isEmpty()) {
-                            return@addOnSuccessListener
+                    submitToThreadPool {
+                        try {
+                            if (list.isEmpty()) {
+                                return@submitToThreadPool
+                            }
+                            val face = list[0]
+                            faceProcessor.preExecute(face, image) {
+                                builder.processFailedCallback?.invoke(it)
+                            }
+                            if (!faceProcessor.isFinished()) {
+                                faceProcessor.execute(face, image,
+                                    {
+                                        builder.processFailedCallback?.invoke(it)
+                                    }, {
+                                        builder.processSuccessfullyCallback?.invoke()
+                                    })
+                            }
+                        } finally {
+                            faceProcessor.clearCache()
+                            proxy.close()
                         }
-                        val face = list[0]
-                        faceProcessor.preExecute(face, image) {
-                            builder.processFailedCallback?.invoke(it)
-                        }
-                        if (!faceProcessor.isFinished()) {
-                            faceProcessor.execute(face, image,
-                                {
-                                    builder.processFailedCallback?.invoke(it)
-                                }, {
-                                    builder.processSuccessfullyCallback?.invoke()
-                                })
-                        }
-                    } finally {
-                        faceProcessor.clearCache()
-                        proxy.close()
                     }
                 }
                 task.addOnFailureListener {
-                    try {
-                        Log.w(TAG, "detect face failed", it)
-                        reportException(it)
-                    } finally {
-                        proxy.close()
+                    submitToThreadPool {
+                        try {
+                            Log.w(TAG, "detect face failed", it)
+                            reportException(it)
+                        } finally {
+                            proxy.close()
+                        }
                     }
                 }
                 task.addOnCanceledListener {
@@ -122,7 +163,7 @@ class FaceRecognition private constructor(private val builder: Builder) {
         this.faceProcessor = faceProcessor
     }
 
-    private fun reportException(e: Throwable) {
+    internal fun reportException(e: Throwable) {
         if (builder.exceptionListener != null) {
             builder.exceptionListener!!.invoke(e)
         } else {

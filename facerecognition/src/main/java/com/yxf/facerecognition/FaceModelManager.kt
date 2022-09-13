@@ -32,13 +32,13 @@ class FaceModelManager(
     private var modelAvailable: Boolean = false
 
     init {
-        faceRecognition.executor.submit {
+        faceRecognition.submitToThreadPool {
             if (isModelExist()) {
                 val model = try {
                     FaceModel.fromFile(modelPath)
                 } catch (e: Exception) {
                     Log.e(TAG, "load user model failed", e)
-                    return@submit
+                    return@submitToThreadPool
                 }
                 if (model.id == modelId) {
                     updateFaceModelInternal(model)
@@ -70,8 +70,12 @@ class FaceModelManager(
     }
 
     fun saveFaceModel() {
-        faceRecognition.executor.submit {
+        if (faceRecognition.executor.isShutdown) {
             saveFaceModelSync()
+        } else {
+            faceRecognition.submitToThreadPool {
+                saveFaceModelSync()
+            }
         }
     }
 
