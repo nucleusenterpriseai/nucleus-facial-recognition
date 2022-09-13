@@ -44,10 +44,11 @@ class AddFaceActivity : AppCompatActivity() {
 
     private fun createFaceProcessor(): FaceProcessor {
         val faceProcessor = FaceProcessor()
-        faceProcessor.addPipelineHandler(FaceRectPipelineHandler(vb.preview) {
+        faceProcessor.addPrePipelineHandler(FaceRectPipelineHandler(vb.preview) {
             faceRect.set(it)
             vb.root.post(faceRectUpdateTask)
         })
+
         faceProcessor.addPipelineHandler(FaceTrackingPipeHandler {
             vb.root.post {
                 faceRecognition.updateFaceProcessor(createFaceProcessor())
@@ -64,7 +65,6 @@ class AddFaceActivity : AppCompatActivity() {
             setSuccessfullyCallback { face, image ->
                 vb.hint.post {
                     vb.hint.text = "采集完毕"
-                    faceRecognition.updateFaceProcessor(createEmptyFaceProcessor())
                 }
             }
         })
@@ -72,8 +72,8 @@ class AddFaceActivity : AppCompatActivity() {
     }
 
     private fun createEmptyFaceProcessor(): FaceProcessor {
-        val faceProcessor = FaceProcessor(false)
-        faceProcessor.addPipelineHandler(FaceRectPipelineHandler(vb.preview) {
+        val faceProcessor = FaceProcessor(true)
+        faceProcessor.addPrePipelineHandler(FaceRectPipelineHandler(vb.preview) {
             faceRect.set(it)
             vb.root.post(faceRectUpdateTask)
         })
@@ -84,7 +84,9 @@ class AddFaceActivity : AppCompatActivity() {
         faceRecognition = FaceRecognition.Builder(vb.preview)
             .setProcessFailedListener {
                 vb.hint.post {
-                    vb.hint.text = it
+                    if (it.isNotEmpty()) {
+                        vb.hint.text = it
+                    }
                 }
             }
             .setProcessSuccessfullyListener {

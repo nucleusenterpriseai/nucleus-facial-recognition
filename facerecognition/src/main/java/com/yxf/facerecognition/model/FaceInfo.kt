@@ -1,13 +1,10 @@
 package com.yxf.facerecognition.model
 
-import android.os.Bundle
-import android.os.Parcel
-import android.os.ParcelFileDescriptor
-import android.os.Parcelable
-import java.io.ByteArrayOutputStream
-import java.io.OutputStreamWriter
-import java.io.Serializable
-import java.nio.ByteBuffer
+import com.yxf.androidutil.io.DataSerializable
+import com.yxf.androidutil.io.DataSerializableCreator
+import com.yxf.androidutil.io.readFloatArray
+import com.yxf.androidutil.io.writeFloatArray
+import java.io.*
 
 data class FaceInfo(
     val tfData: FloatArray,
@@ -15,7 +12,7 @@ data class FaceInfo(
     var weightingDifference: Float = Float.MAX_VALUE,
     internal var difference: Float = Float.MAX_VALUE,
     val timestamp: Long = System.currentTimeMillis()
-) : Parcelable {
+) : DataSerializable {
 
     fun getTypeName(): String {
         return when (type) {
@@ -46,20 +43,15 @@ data class FaceInfo(
         return (timestamp % Int.MAX_VALUE).toInt()
     }
 
-    override fun writeToParcel(parcel: Parcel, flags: Int) {
-        parcel.writeInt(tfData.size)
-        parcel.writeFloatArray(tfData)
-        parcel.writeInt(type)
-        parcel.writeFloat(weightingDifference)
-        parcel.writeFloat(difference)
-        parcel.writeLong(timestamp)
+    override fun writeToData(out: DataOutputStream) {
+        out.writeFloatArray(tfData)
+        out.writeInt(type)
+        out.writeFloat(weightingDifference)
+        out.writeFloat(difference)
+        out.writeLong(timestamp)
     }
 
-    override fun describeContents(): Int {
-        return 0
-    }
-
-    companion object CREATOR : Parcelable.Creator<FaceInfo> {
+    companion object CREATOR : DataSerializableCreator<FaceInfo> {
 
         const val HISTORY_WEIGHT = 0.7f
 
@@ -70,19 +62,13 @@ data class FaceInfo(
         const val TYPE_RIGHT = 3
         const val TYPE_BOTTOM = 4
 
-        override fun createFromParcel(parcel: Parcel): FaceInfo {
-            val size = parcel.readInt()
-            val tfData = FloatArray(size)
-            parcel.readFloatArray(tfData)
-            val type = parcel.readInt()
-            val weightingDifference = parcel.readFloat()
-            val difference = parcel.readFloat()
-            val timestamp = parcel.readLong()
+        override fun readFromData(ins: DataInputStream): FaceInfo {
+            val tfData = ins.readFloatArray()
+            val type = ins.readInt()
+            val weightingDifference = ins.readFloat()
+            val difference = ins.readFloat()
+            val timestamp = ins.readLong()
             return FaceInfo(tfData, type, weightingDifference, difference, timestamp)
-        }
-
-        override fun newArray(size: Int): Array<FaceInfo?> {
-            return arrayOfNulls(size)
         }
     }
 

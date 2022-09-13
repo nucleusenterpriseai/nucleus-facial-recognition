@@ -30,6 +30,65 @@
             app:layout_constraintTop_toTopOf="parent" />
     </FrameLayout>
 
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/compare_recent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:checked="true"
+        android:text="Compare with recent face info"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/preview"
+        app:switchPadding="10dp" />
+
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/add_recent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:checked="true"
+        android:text="Add recent face info to model"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/compare_recent"
+        app:switchPadding="10dp" />
+
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/add_recent"
+        android:text="Difference:"
+        android:layout_marginLeft="20dp"
+        android:id="@+id/difference_title"
+        />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/difference_value"
+        android:text="0.5"
+        app:layout_constraintLeft_toRightOf="@id/difference_title"
+        app:layout_constraintTop_toTopOf="@id/difference_title"
+        app:layout_constraintBottom_toBottomOf="@id/difference_title"
+        android:layout_marginLeft="4dp"
+        />
+
+    <androidx.appcompat.widget.AppCompatSeekBar
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintLeft_toRightOf="@id/difference_value"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/add_recent"
+        android:id="@+id/difference_seekbar"
+        android:layout_marginHorizontal="20dp"
+        android:max="100"
+        android:progress="50"
+        />
+
+
+
+
     <TextView
         android:id="@+id/status"
         android:layout_width="wrap_content"
@@ -38,7 +97,7 @@
         android:textSize="20sp"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/preview" />
+        app:layout_constraintTop_toBottomOf="@id/difference_seekbar" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

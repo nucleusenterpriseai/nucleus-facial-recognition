@@ -6,7 +6,6 @@ import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.LayoutInflater
 import androidx.core.app.ActivityCompat
-import com.yxf.facerecognition.test.GlobalInfo
 import com.yxf.facerecognitionsample.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -16,7 +15,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        GlobalInfo.init(this)
         setContentView(vb.root)
         vb.addFace.setOnClickListener {
             startActivity(Intent(this, AddFaceActivity::class.java))

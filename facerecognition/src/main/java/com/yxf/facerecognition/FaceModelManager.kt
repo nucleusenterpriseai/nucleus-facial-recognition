@@ -3,8 +3,8 @@ package com.yxf.facerecognition
 import android.media.Image
 import android.util.Log
 import com.google.mlkit.vision.face.Face
-import com.yxf.androidutil.ktx.fromFile
-import com.yxf.androidutil.ktx.toFile
+import com.yxf.androidutil.io.fromFile
+import com.yxf.androidutil.io.toFile
 import com.yxf.facerecognition.model.FaceInfo
 import com.yxf.facerecognition.model.FaceModel
 import com.yxf.facerecognition.model.FaceModel.CREATOR.CURRENT_SOFTWARE_VERSION
@@ -41,8 +41,7 @@ class FaceModelManager(
                     return@submit
                 }
                 if (model.id == modelId) {
-                    faceModel = model
-                    modelAvailable = true
+                    updateFaceModelInternal(model)
                 } else {
                     Log.d(TAG, "load model failed")
                 }
@@ -57,7 +56,7 @@ class FaceModelManager(
     }
 
     fun isModelExist(): Boolean {
-        return File(modelPath).exists()
+        return faceModel != null || File(modelPath).exists()
     }
 
     fun getFaceModel(): FaceModel? {
@@ -67,24 +66,34 @@ class FaceModelManager(
     fun removeFaceModel() {
         faceModel = null
         File(modelPath).delete()
+        modelAvailable = false
     }
 
     fun saveFaceModel() {
         faceRecognition.executor.submit {
-            faceModel?.toFile(modelPath)
+            saveFaceModelSync()
         }
+    }
+
+    fun saveFaceModelSync() {
+        val file = File(modelPath)
+        if (file.exists()) {
+            file.delete()
+            file.createNewFile()
+        }
+        faceModel?.toFile(modelPath)
     }
 
 
     fun updateBaseFaceInfo(faceInfo: FaceInfo) {
-        faceModel?.let {
+        faceModel?.let { model ->
             val model = FaceModel(
                 FaceModel.CURRENT_SOFTWARE_VERSION,
-                it.version + 1,
-                it.id,
-                ConcurrentHashMap<Int, FaceInfo>(it.baseFaceInfoMap).also { it[faceInfo.type] = faceInfo },
-                it.similarFaceInfoList,
-                it.recentFaceInfoList
+                model.version + 1,
+                model.id,
+                ConcurrentHashMap<Int, FaceInfo>(model.baseFaceInfoMap).also { it[faceInfo.type] = faceInfo },
+                model.similarFaceInfoList,
+                model.recentFaceInfoList
             )
             faceModel = model
             return
@@ -116,11 +125,21 @@ class FaceModelManager(
         updateBaseFaceInfo(faceInfo)
     }
 
-    /**
-     * should let version + 1
-     */
-    fun updateFaceModel(faceModel: FaceModel) {
+    private fun updateFaceModelInternal(faceModel: FaceModel) {
         this.faceModel = faceModel
+        modelAvailable = true
+    }
+
+    fun updateFaceModel(faceModel: FaceModel, force: Boolean = false) {
+        if (this.faceModel != null) {
+            if (!force) {
+                if (this.faceModel!!.version <= faceModel.version && this.faceModel!!.id == faceModel.id) {
+                    updateFaceModelInternal(faceModel)
+                }
+                return
+            }
+        }
+        updateFaceModelInternal(faceModel)
     }
 
     fun updateSimilarFaceInfoList(list: List<FaceInfo>) {

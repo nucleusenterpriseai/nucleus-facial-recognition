@@ -80,6 +80,9 @@ class FaceRecognition private constructor(private val builder: Builder) {
                             return@addOnSuccessListener
                         }
                         val face = list[0]
+                        faceProcessor.preExecute(face, image) {
+                            builder.processFailedCallback?.invoke(it)
+                        }
                         if (!faceProcessor.isFinished()) {
                             faceProcessor.execute(face, image,
                                 {
@@ -89,6 +92,7 @@ class FaceRecognition private constructor(private val builder: Builder) {
                                 })
                         }
                     } finally {
+                        faceProcessor.clearCache()
                         proxy.close()
                     }
                 }

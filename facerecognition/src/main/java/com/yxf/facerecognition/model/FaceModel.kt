@@ -1,9 +1,11 @@
 package com.yxf.facerecognition.model
 
-import android.os.Parcel
-import android.os.Parcelable
-import com.yxf.facerecognition.ktx.readFaceInfoList
-import com.yxf.facerecognition.ktx.writeFaceInfoList
+import com.yxf.androidutil.io.DataSerializable
+import com.yxf.androidutil.io.DataSerializableCreator
+import com.yxf.androidutil.io.readList
+import com.yxf.androidutil.io.writeList
+import java.io.DataInputStream
+import java.io.DataOutputStream
 import java.util.concurrent.ConcurrentHashMap
 
 data class FaceModel(
@@ -13,53 +15,51 @@ data class FaceModel(
     val baseFaceInfoMap: Map<Int, FaceInfo>,
     val similarFaceInfoList: List<FaceInfo>,
     val recentFaceInfoList: List<FaceInfo>
-) : Parcelable {
+) : DataSerializable {
 
     fun getBaseFaceInfoList(): List<FaceInfo> {
         return baseFaceInfoMap.values.toList()
     }
 
-    override fun describeContents(): Int {
-        return 0
+    override fun writeToData(out: DataOutputStream) {
+        out.writeInt(softwareVersion)
+        out.writeInt(version)
+        out.writeUTF(id)
+        out.writeList(getBaseFaceInfoList(), writeFaceInfo)
+        out.writeList(similarFaceInfoList, writeFaceInfo)
+        out.writeList(recentFaceInfoList, writeFaceInfo)
     }
 
-    override fun writeToParcel(parcel: Parcel, flags: Int) {
-        parcel.writeInt(softwareVersion)
-        parcel.writeInt(version)
-        parcel.writeString(id)
-        parcel.writeFaceInfoList(getBaseFaceInfoList())
-        parcel.writeFaceInfoList(similarFaceInfoList)
-        parcel.writeFaceInfoList(recentFaceInfoList)
-    }
 
-    companion object CREATOR : Parcelable.Creator<FaceModel> {
+    companion object CREATOR : DataSerializableCreator<FaceModel> {
 
         const val CURRENT_SOFTWARE_VERSION = 1
 
         const val SIMILAR_MAX_SIZE = 30
         const val RECENT_MAX_SIZE = 10
 
+        private val writeFaceInfo: (out: DataOutputStream, info: FaceInfo) -> Unit = {out, info ->
+            info.writeToData(out)
+        }
 
-        override fun createFromParcel(parcel: Parcel): FaceModel {
-            val softwareVersion = parcel.readInt()
-            val version = parcel.readInt()
-            val userId = parcel.readString()!!
+        private val readFaceInfo: (ins: DataInputStream) -> FaceInfo = {
+            FaceInfo.readFromData(it)
+        }
 
-            val baseFaceInfoList = parcel.readFaceInfoList()
+        override fun readFromData(ins: DataInputStream): FaceModel {
+            val softwareVersion = ins.readInt()
+            val version = ins.readInt()
+            val userId = ins.readUTF()
+            val baseFaceInfoList = ins.readList(readFaceInfo)
             val baseFaceInfoMap = ConcurrentHashMap<Int, FaceInfo>()
             baseFaceInfoList.forEach {
                 baseFaceInfoMap[it.type] = it
             }
-            val similarFaceInfoList = parcel.readFaceInfoList()
-            val recentFaceInfoList = parcel.readFaceInfoList()
-
+            val similarFaceInfoList = ins.readList(readFaceInfo)
+            val recentFaceInfoList = ins.readList(readFaceInfo)
             return FaceModel(softwareVersion, version, userId, baseFaceInfoMap, similarFaceInfoList, recentFaceInfoList)
-        }
 
-        override fun newArray(size: Int): Array<FaceModel?> {
-            return arrayOfNulls(size)
         }
     }
-
 
 }
