@@ -10,6 +10,7 @@ import com.yxf.facerecognition.model.FaceInfo
 import com.yxf.facerecognition.model.FaceModel
 import com.yxf.facerecognition.tflite.TensorFlowLiteAnalyzer
 import java.io.ByteArrayOutputStream
+import java.io.File
 import kotlin.math.abs
 import kotlin.math.sqrt
 
@@ -78,6 +79,20 @@ object FaceRecognitionUtil {
         yuvImage.compressToJpeg(Rect(0, 0, yuvImage.width, yuvImage.height), 100, out)
         val imageBytes = out.toByteArray()
         return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
+    }
+
+    fun yuvImageDataToPng(data: ByteArray, width: Int, height: Int, path: String): File {
+        val bitmap = yuvImageDataToBitmap(data, width, height)
+        val file = File(path)
+        if (file.exists()) {
+            file.delete()
+        }
+        file.createNewFile()
+        val out = file.outputStream()
+        out.use {
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
+        }
+        return file
     }
 
     fun imageToBitmap(image: Image): Bitmap {

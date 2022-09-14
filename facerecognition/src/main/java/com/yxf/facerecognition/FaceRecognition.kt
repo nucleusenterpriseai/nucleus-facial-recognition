@@ -39,43 +39,32 @@ class FaceRecognition private constructor(private val builder: Builder) {
 
     internal val analysis by lazy { TensorFlowLiteAnalyzer(context) }
 
-    internal val executor = /*Executors.newSingleThreadExecutor(ThreadFactory {
-        val wrap = Runnable {
-            try {
-                it.run()
-            } catch (e: Throwable) {
+    internal val executor = object : ThreadPoolExecutor(1, 1, 60, TimeUnit.SECONDS, LinkedBlockingQueue<Runnable>()) {
+
+        override fun afterExecute(r: Runnable?, t: Throwable?) {
+            super.afterExecute(r, t)
+            var e: Throwable? = null
+            if (t == null && r is Future<*>) {
+                try {
+                    val future = r as Future<*>
+                    if (future.isDone) {
+                        future.get()
+                    }
+                } catch (ce: CancellationException) {
+                    e = ce
+                } catch (ee: ExecutionException) {
+                    e = ee.cause
+                } catch (ie: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                }
+            } else {
+                e = t
+            }
+            if (e != null) {
                 reportException(e)
             }
         }
-        return@ThreadFactory Thread(wrap, "fr-thread")
-    })*/
-        object: ThreadPoolExecutor(1, 1, 60, TimeUnit.SECONDS, LinkedBlockingQueue<Runnable>()) {
-
-            override fun afterExecute(r: Runnable?, t: Throwable?) {
-                super.afterExecute(r, t)
-                var e: Throwable? = null
-                if (t == null && r is Future<*>) {
-                    try {
-                        val future = r as Future<*>
-                        if (future.isDone) {
-                            future.get()
-                        }
-                    } catch (ce: CancellationException) {
-                        e = ce
-                    } catch (ee: ExecutionException) {
-                        e = ee.cause
-                    } catch (ie: InterruptedException) {
-                        Thread.currentThread().interrupt()
-                    }
-                } else {
-                    e = t
-                }
-                if (e != null) {
-                    reportException(e)
-                }
-            }
-
-        }
+    }
 
     private val detector = FaceDetection.getClient(builder.options)
 
@@ -252,6 +241,7 @@ class FaceRecognition private constructor(private val builder: Builder) {
                 options = FaceDetectorOptions.Builder()
                     .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
                     .setContourMode(FaceDetectorOptions.CONTOUR_MODE_NONE)
+                    .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
                     .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
                     .enableTracking()
                     .build()

@@ -12,6 +12,7 @@ import com.yxf.facerecognition.processor.FaceProcessor.Companion.CACHE_KEY_YUV
 import com.yxf.facerecognition.util.FaceRecognitionUtil
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CopyOnWriteArrayList
 
 class FaceModelManager(
     private val modelPath: String,
@@ -92,7 +93,7 @@ class FaceModelManager(
     fun updateBaseFaceInfo(faceInfo: FaceInfo) {
         faceModel?.let { model ->
             val model = FaceModel(
-                FaceModel.CURRENT_SOFTWARE_VERSION,
+                CURRENT_SOFTWARE_VERSION,
                 model.version + 1,
                 model.id,
                 ConcurrentHashMap<Int, FaceInfo>(model.baseFaceInfoMap).also { it[faceInfo.type] = faceInfo },
@@ -105,15 +106,28 @@ class FaceModelManager(
         if (isModelExist()) {
             Log.w(TAG, "user face model is null, update base face info failed")
         } else {
-            faceModel = FaceModel(
-                FaceModel.CURRENT_SOFTWARE_VERSION,
-                1,
-                modelId,
-                ConcurrentHashMap<Int, FaceInfo>().also { it[faceInfo.type] = faceInfo },
-                emptyList(),
-                emptyList()
-            )
+            throw RuntimeException("update base face info failed, model is not exist")
         }
+    }
+
+    private fun getNextVersion(): Int {
+        return (faceModel?.version ?: 0) + 1
+    }
+
+    private fun createBaseFaceModel(baseList: List<FaceInfo>, version: Int = getNextVersion()): FaceModel {
+        val model = FaceModel(
+            CURRENT_SOFTWARE_VERSION,
+            version,
+            modelId,
+            ConcurrentHashMap<Int, FaceInfo>().also { map ->
+                baseList.forEach {
+                    map[it.type] = it
+                }
+            },
+            CopyOnWriteArrayList(),
+            CopyOnWriteArrayList()
+        )
+        return model
     }
 
     fun updateBaseModelByImage(face: Face, image: Image, yuvData: ByteArray? = null) {
@@ -132,6 +146,12 @@ class FaceModelManager(
     private fun updateFaceModelInternal(faceModel: FaceModel) {
         this.faceModel = faceModel
         modelAvailable = true
+    }
+
+    fun coverFaceModelWithBaseFaceInfo(list: List<FaceInfo>) {
+        val version = (faceModel?.version ?: 0) + 1
+        val model = createBaseFaceModel(list, version)
+        faceModel = model
     }
 
     fun updateFaceModel(faceModel: FaceModel, force: Boolean = false) {

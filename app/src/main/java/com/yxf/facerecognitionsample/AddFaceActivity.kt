@@ -2,6 +2,7 @@ package com.yxf.facerecognitionsample
 
 import android.graphics.Rect
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
@@ -10,6 +11,11 @@ import com.yxf.facerecognition.processor.*
 import com.yxf.facerecognitionsample.databinding.ActivityAddFaceBinding
 
 class AddFaceActivity : AppCompatActivity() {
+
+    companion object {
+
+        private val TAG = "FR.AddFace"
+    }
 
     private val vb by lazy { ActivityAddFaceBinding.inflate(LayoutInflater.from(this)) }
 
@@ -57,11 +63,13 @@ class AddFaceActivity : AppCompatActivity() {
         faceProcessor.addPipelineHandler(RangePipelineHandler("请正对摄像头"))
         faceProcessor.addPipelineHandler(AngleZPipelineHandler("请勿倾斜"))
         faceProcessor.addPipelineHandler(LivePipelineHandler("请勿欺骗我的感情", this))
-        faceProcessor.addPipelineHandler(FrontFacePipelineHandler("请正对摄像头"))
-        faceProcessor.addPipelineHandler(LeftFacePipelineHandler("请缓慢向左转头"))
-        faceProcessor.addPipelineHandler(RightFacePipelineHandler("请缓慢向右转头"))
-        faceProcessor.addPipelineHandler(TopFacePipelineHandler("请缓慢抬头"))
-        faceProcessor.addPipelineHandler(BottomFacePipelineHandler("请缓慢低头").apply {
+        val container = FaceInfoContainer()
+        faceProcessor.addPipelineHandler(FrontFacePipelineHandler("请正对摄像头", container))
+        faceProcessor.addPipelineHandler(LeftFacePipelineHandler("请缓慢向左转头", container))
+        faceProcessor.addPipelineHandler(RightFacePipelineHandler("请缓慢向右转头", container))
+        faceProcessor.addPipelineHandler(TopFacePipelineHandler("请缓慢抬头",container))
+        faceProcessor.addPipelineHandler(BottomFacePipelineHandler("请缓慢低头",container))
+        faceProcessor.addPipelineHandler(UpdateFacePipelineHandler(container).apply {
             setSuccessfullyCallback { face, image ->
                 vb.hint.post {
                     vb.hint.text = "采集完毕"
@@ -77,6 +85,7 @@ class AddFaceActivity : AppCompatActivity() {
             faceRect.set(it)
             vb.root.post(faceRectUpdateTask)
         })
+        faceProcessor.addPrePipelineHandler(LandMarkPipelineHandler("请勿遮挡脸部"))
         return faceProcessor
     }
 
@@ -92,11 +101,12 @@ class AddFaceActivity : AppCompatActivity() {
             .setProcessSuccessfullyListener {
 
             }
-            .setExceptionListener {
+            /*.setExceptionListener {
+                Log.e(TAG, "exception occupied when add face", it)
                 vb.hint.post {
                     vb.hint.text = "采集失败"
                 }
-            }
+            }*/
             .setFaceProcessor(createEmptyFaceProcessor())
             .build()
         faceRecognition.start()

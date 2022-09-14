@@ -38,7 +38,7 @@ class FaceProcessor(private val executeOnce: Boolean = true) {
                 continue
             }
             val result = handler.handle(face, image, this)
-            if (result) {
+            if (!result) {
                 failedCallback(handler.getFailedHint())
                 return
             } else {
