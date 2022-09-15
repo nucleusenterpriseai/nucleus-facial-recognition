@@ -5,6 +5,7 @@ import android.util.Log
 import com.google.mlkit.vision.face.Face
 import com.google.mlkit.vision.face.FaceLandmark
 
+@Deprecated("not useful")
 class LandMarkPipelineHandler(failedHint: String) : HintPipelineHandler(failedHint) {
 
     override fun handle(face: Face, image: Image, faceProcessor: FaceProcessor): Boolean {

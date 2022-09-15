@@ -67,8 +67,8 @@ class AddFaceActivity : AppCompatActivity() {
         faceProcessor.addPipelineHandler(FrontFacePipelineHandler("请正对摄像头", container))
         faceProcessor.addPipelineHandler(LeftFacePipelineHandler("请缓慢向左转头", container))
         faceProcessor.addPipelineHandler(RightFacePipelineHandler("请缓慢向右转头", container))
-        faceProcessor.addPipelineHandler(TopFacePipelineHandler("请缓慢抬头",container))
-        faceProcessor.addPipelineHandler(BottomFacePipelineHandler("请缓慢低头",container))
+        faceProcessor.addPipelineHandler(TopFacePipelineHandler("请缓慢抬头", container))
+        faceProcessor.addPipelineHandler(BottomFacePipelineHandler("请缓慢低头", container))
         faceProcessor.addPipelineHandler(UpdateFacePipelineHandler(container).apply {
             setSuccessfullyCallback { face, image ->
                 vb.hint.post {
@@ -85,7 +85,7 @@ class AddFaceActivity : AppCompatActivity() {
             faceRect.set(it)
             vb.root.post(faceRectUpdateTask)
         })
-        faceProcessor.addPrePipelineHandler(LandMarkPipelineHandler("请勿遮挡脸部"))
+        //faceProcessor.addPrePipelineHandler(LandMarkPipelineHandler("请勿遮挡脸部"))
         return faceProcessor
     }
 
