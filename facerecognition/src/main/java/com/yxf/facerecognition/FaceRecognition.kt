@@ -104,6 +104,7 @@ class FaceRecognition private constructor(private val builder: Builder) {
                     submitToThreadPool {
                         try {
                             if (list.isEmpty()) {
+                                builder.processEmptyCallback?.invoke()
                                 return@submitToThreadPool
                             }
                             val face = list[0]
@@ -194,6 +195,7 @@ class FaceRecognition private constructor(private val builder: Builder) {
         internal var exceptionListener: ((e: Throwable) -> Unit)? = null
         internal var processFailedCallback: ((failedHint: String) -> Unit)? = null
         internal var processSuccessfullyCallback: (() -> Unit)? = null
+        internal var processEmptyCallback: (() -> Unit)? = null
         internal var cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
 
         fun setCameraSelector(selector: CameraSelector): Builder {
@@ -223,6 +225,11 @@ class FaceRecognition private constructor(private val builder: Builder) {
 
         fun setProcessSuccessfullyListener(callback: () -> Unit): Builder {
             processSuccessfullyCallback = callback
+            return this
+        }
+
+        fun setProcessEmptyListener(callback: () -> Unit): Builder {
+            processEmptyCallback = callback
             return this
         }
 
