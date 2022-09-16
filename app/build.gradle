@@ -38,6 +38,8 @@ android {
 dependencies {
 
     implementation project(path: ":facerecognition")
+    //Face recognition
+    //implementation 'com.github.dqh147258:FaceRecognition:1.0.4'
     //SilentFaceAntiSpoofing
     implementation 'com.github.dqh147258:SilentFaceAntiSpoofing:1.0.3'
 

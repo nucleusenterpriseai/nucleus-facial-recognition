@@ -3,7 +3,9 @@ package com.yxf.facerecognition.tflite
 import android.content.Context
 import android.content.res.AssetManager
 import android.graphics.Bitmap
+import android.util.Log
 import org.tensorflow.lite.Interpreter
+import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
 import java.nio.ByteBuffer
@@ -30,26 +32,16 @@ class TensorFlowLiteAnalyzer(private val context: Context) {
         // Number of threads in the java app
         private const val NUM_THREADS = 4
 
-        //private const val TF_OD_API_LABELS_FILE = "labelmap.txt"
+        private const val MODEL_FILE_NAME = TF_OD_API_MODEL_FILE
 
+        private val TAG = "FR." + "TensorFlowLiteAnalyzer"
 
-        /** Memory-map the model file in Assets.  */
-        @Throws(IOException::class)
-        private fun loadModelFile(assets: AssetManager, modelFilename: String): MappedByteBuffer {
-            val fileDescriptor = assets.openFd(modelFilename)
-            val inputStream = FileInputStream(fileDescriptor.fileDescriptor)
-            val fileChannel = inputStream.channel
-            val startOffset = fileDescriptor.startOffset
-            val declaredLength = fileDescriptor.declaredLength
-            return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
-        }
     }
 
 
     private val assets by lazy { context.assets }
 
     private val colorArray: IntArray = IntArray(TF_OD_API_INPUT_SIZE * TF_OD_API_INPUT_SIZE)
-
 
 
     private val imgData by lazy {
@@ -59,7 +51,57 @@ class TensorFlowLiteAnalyzer(private val context: Context) {
     }
 
     private val tfLite by lazy {
-        Interpreter(loadModelFile(assets, TF_OD_API_MODEL_FILE), null)
+        Interpreter(loadModelFile(), null)
+    }
+
+    private val tfLiteFolderPath by lazy {
+        val path = "${context.filesDir}/tflite"
+        val file = File(path)
+        if (!file.exists()) {
+            file.mkdirs()
+        }
+        return@lazy path
+    }
+
+    private val modelFile by lazy {
+
+        val filePath = "${tfLiteFolderPath}/$MODEL_FILE_NAME"
+        val file = File(filePath)
+        if (file.exists()) {
+            return@lazy file
+        } else {
+            extractModelFile(file)
+            return@lazy file
+        }
+    }
+
+    private fun extractModelFile(file: File) {
+        try {
+            context.assets.open(MODEL_FILE_NAME).use { ins ->
+                file.outputStream().use { os ->
+                    val buffer = ByteArray(1024 * 100)
+                    var len = 0
+                    while (ins.read(buffer).also { len = it } != -1) {
+                        os.write(buffer, 0, len)
+                    }
+                }
+            }
+        } catch (e: Throwable) {
+            Log.e(TAG, "extract model file failed", e)
+            file.delete()
+            throw e
+        }
+    }
+
+
+    /** Memory-map the model file in Assets.  */
+    @Throws(IOException::class)
+    private fun loadModelFile(): MappedByteBuffer {
+        val inputStream = FileInputStream(modelFile)
+        val fileChannel = inputStream.channel
+        val startOffset = 0L
+        val declaredLength = modelFile.length()
+        return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength)
     }
 
     fun analyzeFaceImage(bitmap: Bitmap): FloatArray {
