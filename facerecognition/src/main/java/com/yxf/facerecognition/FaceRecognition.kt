@@ -166,7 +166,9 @@ class FaceRecognition private constructor(private val builder: Builder) {
         context.lifecycle.addObserver(object : LifecycleEventObserver {
             override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
                 if (event == Lifecycle.Event.ON_DESTROY) {
-                    faceModelManager.saveFaceModel()
+                    if (builder.autoSaveModel) {
+                        faceModelManager.saveFaceModel()
+                    }
                     executor.shutdown()
                 }
             }
@@ -197,6 +199,12 @@ class FaceRecognition private constructor(private val builder: Builder) {
         internal var processSuccessfullyCallback: (() -> Unit)? = null
         internal var processEmptyCallback: (() -> Unit)? = null
         internal var cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
+        internal var autoSaveModel: Boolean = false
+
+        fun saveModelOnDestroy(): Builder {
+            autoSaveModel = true
+            return this
+        }
 
         fun setCameraSelector(selector: CameraSelector): Builder {
             this.cameraSelector = selector
