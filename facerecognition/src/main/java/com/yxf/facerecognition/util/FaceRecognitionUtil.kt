@@ -73,15 +73,15 @@ object FaceRecognitionUtil {
         return result
     }
 
-    fun yuvImageDataToBitmap(data: ByteArray, width: Int, height: Int): Bitmap {
+    fun yuvImageDataToBitmap(data: ByteArray, width: Int, height: Int, quality: Int = 100): Bitmap {
         val yuvImage = YuvImage(data, ImageFormat.NV21, width, height, null)
         val out = ByteArrayOutputStream()
-        yuvImage.compressToJpeg(Rect(0, 0, yuvImage.width, yuvImage.height), 100, out)
+        yuvImage.compressToJpeg(Rect(0, 0, yuvImage.width, yuvImage.height), quality, out)
         val imageBytes = out.toByteArray()
         return BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size)
     }
 
-    fun yuvImageDataToPng(data: ByteArray, width: Int, height: Int, path: String): File {
+    fun yuvImageDataToPng(data: ByteArray, width: Int, height: Int, path: String, quality: Int = 100): File {
         val bitmap = yuvImageDataToBitmap(data, width, height)
         val file = File(path)
         if (file.exists()) {
@@ -90,7 +90,7 @@ object FaceRecognitionUtil {
         file.createNewFile()
         val out = file.outputStream()
         out.use {
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)
+            bitmap.compress(Bitmap.CompressFormat.PNG, quality, it)
         }
         return file
     }
