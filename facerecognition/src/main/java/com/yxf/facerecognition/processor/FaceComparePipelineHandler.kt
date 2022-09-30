@@ -12,6 +12,7 @@ class FaceComparePipelineHandler(
     failedHint: String,
     private val compareRecent: Boolean = true,
     private val critical: Float = DEFAULT_DIFFERENCE_CRITICAL,
+    private val showErrorDelay: Long = 15 * 60 * 1000,
     private val callback: (result: Boolean, faceInfo: FaceInfo, difference: Float) -> Unit
 ) : HintPipelineHandler(failedHint) {
 
@@ -24,7 +25,12 @@ class FaceComparePipelineHandler(
 
     }
 
+    private var trackingTime = -1L
+
     override fun handle(face: Face, image: Image, faceProcessor: FaceProcessor): Boolean {
+        if (trackingTime == -1L) {
+            trackingTime = System.currentTimeMillis()
+        }
         val yuvData = faceProcessor.cache[CACHE_KEY_YUV].run {
             if (this == null) {
                 FaceRecognitionUtil.imageToYuvImageData(image)
@@ -53,11 +59,21 @@ class FaceComparePipelineHandler(
         }
         return (minResult.first < critical).also {
             callback(it, minResult.second, minResult.first)
+            if (it) {
+                trackingTime = -1
+            }
         }
     }
 
     override fun isHandleFinished(): Boolean {
         return false
+    }
+
+    override fun getFailedHint(): String {
+        if (trackingTime == -1L || System.currentTimeMillis() - trackingTime < showErrorDelay) {
+            return ""
+        }
+        return super.getFailedHint()
     }
 
 
