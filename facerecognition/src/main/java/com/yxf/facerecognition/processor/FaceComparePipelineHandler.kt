@@ -12,7 +12,8 @@ class FaceComparePipelineHandler(
     failedHint: String,
     private val compareRecent: Boolean = true,
     private val critical: Float = DEFAULT_DIFFERENCE_CRITICAL,
-    private val showErrorDelay: Long = 15 * 60 * 1000,
+    private val minCompareInterval: Int = 100,
+    private val showErrorDelay: Long = 15 * 1000,
     private val callback: (result: Boolean, faceInfo: FaceInfo, difference: Float) -> Unit
 ) : HintPipelineHandler(failedHint) {
 
@@ -26,6 +27,7 @@ class FaceComparePipelineHandler(
     }
 
     private var trackingTime = -1L
+    private var firstSuccessfulTime = 0L
 
     override fun handle(face: Face, image: Image, faceProcessor: FaceProcessor): Boolean {
         if (trackingTime == -1L) {
@@ -57,7 +59,20 @@ class FaceComparePipelineHandler(
         } else {
             baseResult
         }
-        return (minResult.first < critical).also {
+        val currentResult = minResult.first < critical
+        var finalResult = false
+        if (currentResult) {
+            if (firstSuccessfulTime == 0L) {
+                firstSuccessfulTime = System.currentTimeMillis()
+            } else {
+                if (System.currentTimeMillis() - firstSuccessfulTime >= minCompareInterval) {
+                    finalResult = true
+                }
+            }
+        } else {
+            firstSuccessfulTime = 0L
+        }
+        return finalResult.also {
             callback(it, minResult.second, minResult.first)
             if (it) {
                 trackingTime = -1
