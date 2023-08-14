@@ -17,7 +17,8 @@ import java.util.concurrent.CopyOnWriteArrayList
 class FaceModelManager(
     private val modelPath: String,
     private val modelId: String,
-    private val faceRecognition: FaceRecognition
+    private val faceRecognition: FaceRecognition,
+    private val additionalModelPath: String? = null
 ) {
 
     companion object {
@@ -30,7 +31,16 @@ class FaceModelManager(
     private var faceModel: FaceModel? = null
 
     @Volatile
+    private var additionalFaceModel: FaceModel? = null
+
+    @Volatile
+    private var fullFaceModel: FaceModel? = null
+
+    @Volatile
     private var modelAvailable: Boolean = false
+
+    @Volatile
+    private var additionalModelAvailable: Boolean = false
 
     init {
         faceRecognition.submitToThreadPool {
@@ -46,6 +56,18 @@ class FaceModelManager(
                 } else {
                     Log.d(TAG, "load model failed")
                 }
+                if (isAdditionalModelExist()) {
+                    val additionalModel = try {
+                        FaceModel.fromFile(additionalModelPath!!)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "load update model failed", e)
+                        return@submitToThreadPool
+                    }
+                    if (additionalModel.id == modelId) {
+                        updateAdditionalFaceModelInternal(additionalModel)
+                    }
+                }
+
             } else {
                 Log.e(TAG, "model not exist")
             }
@@ -60,14 +82,44 @@ class FaceModelManager(
         return faceModel != null || File(modelPath).exists()
     }
 
+    fun isAdditionalModelExist(): Boolean {
+        return additionalFaceModel != null || (additionalModelPath != null && File(
+            additionalModelPath
+        ).exists())
+    }
+
     fun getFaceModel(): FaceModel? {
-        return faceModel
+        if (fullFaceModel == null) {
+            combineFullModel()
+        }
+        return fullFaceModel
+    }
+
+    fun combineFullModel() {
+        if (faceModel == null) {
+            return
+        }
+        if (additionalFaceModel == null) {
+            fullFaceModel = faceModel
+            return
+        }
+        fullFaceModel = FaceModel(
+            faceModel!!.softwareVersion,
+            faceModel!!.version,
+            faceModel!!.id,
+            faceModel!!.baseFaceInfoMap,
+            additionalFaceModel!!.similarFaceInfoList,
+            additionalFaceModel!!.recentFaceInfoList
+        )
     }
 
     fun removeFaceModel() {
         faceModel = null
         File(modelPath).delete()
         modelAvailable = false
+
+        additionalModelPath?.let { File(it).delete() }
+        additionalModelAvailable = false
     }
 
     fun saveFaceModel() {
@@ -84,9 +136,18 @@ class FaceModelManager(
         val file = File(modelPath)
         if (file.exists()) {
             file.delete()
-            file.createNewFile()
         }
+        file.createNewFile()
         faceModel?.toFile(modelPath)
+        if (additionalModelPath == null) {
+            return
+        }
+        val additionalFile = File(additionalModelPath)
+        if (additionalFile.exists()) {
+            additionalFile.delete()
+        }
+        additionalFile.createNewFile()
+        additionalFaceModel?.toFile(additionalModelPath)
     }
 
 
@@ -96,7 +157,9 @@ class FaceModelManager(
                 CURRENT_SOFTWARE_VERSION,
                 model.version + 1,
                 model.id,
-                ConcurrentHashMap<Int, FaceInfo>(model.baseFaceInfoMap).also { it[faceInfo.type] = faceInfo },
+                ConcurrentHashMap<Int, FaceInfo>(model.baseFaceInfoMap).also {
+                    it[faceInfo.type] = faceInfo
+                },
                 model.similarFaceInfoList,
                 model.recentFaceInfoList
             )
@@ -114,7 +177,10 @@ class FaceModelManager(
         return (faceModel?.version ?: 0) + 1
     }
 
-    private fun createBaseFaceModel(baseList: List<FaceInfo>, version: Int = getNextVersion()): FaceModel {
+    private fun createBaseFaceModel(
+        baseList: List<FaceInfo>,
+        version: Int = getNextVersion()
+    ): FaceModel {
         val model = FaceModel(
             CURRENT_SOFTWARE_VERSION,
             version,
@@ -148,6 +214,11 @@ class FaceModelManager(
         modelAvailable = true
     }
 
+    private fun updateAdditionalFaceModelInternal(faceModel: FaceModel) {
+        this.additionalFaceModel = faceModel
+        additionalModelAvailable = true
+    }
+
     fun coverFaceModelWithBaseFaceInfo(list: List<FaceInfo>) {
         val version = (faceModel?.version ?: 0) + 1
         val model = createBaseFaceModel(list, version)
@@ -164,35 +235,38 @@ class FaceModelManager(
             }
         }
         updateFaceModelInternal(faceModel)
+        combineFullModel()
     }
 
     fun updateSimilarFaceInfoList(list: List<FaceInfo>) {
-        faceModel?.let {
-            faceModel = FaceModel(CURRENT_SOFTWARE_VERSION, it.version + 1, it.id, it.baseFaceInfoMap, list, it.recentFaceInfoList)
-            return
-        }
-        Log.e(TAG, "update similar face info list failed")
+        additionalFaceModel = FaceModel(CURRENT_SOFTWARE_VERSION,
+            (additionalFaceModel?.version ?: faceModel?.version ?: 0) + 1,
+            modelId,
+            emptyMap(),
+            list,
+            additionalFaceModel?.recentFaceInfoList ?: emptyList()
+            )
+        combineFullModel()
     }
 
     fun updateRecentFaceInfoList(list: List<FaceInfo>) {
-        faceModel?.let {
-            faceModel = FaceModel(CURRENT_SOFTWARE_VERSION, it.version + 1, it.id, it.baseFaceInfoMap, it.similarFaceInfoList, list)
-            return
-        }
-        Log.e(TAG, "update recent face info list failed")
+        additionalFaceModel = FaceModel(CURRENT_SOFTWARE_VERSION,
+            (additionalFaceModel?.version ?: faceModel?.version ?: 0) + 1,
+            modelId,
+            emptyMap(),
+            additionalFaceModel?.similarFaceInfoList ?: emptyList(),
+            list
+        )
+        combineFullModel()
     }
 
     fun addRecentFaceInfo(faceInfo: FaceInfo) {
-        faceModel?.let {
-            val list = it.recentFaceInfoList.toMutableList()
-            list.add(faceInfo)
-            if (list.size > FaceModel.RECENT_MAX_SIZE) {
-                list.removeAt(0)
-            }
-            updateRecentFaceInfoList(list)
-            return
+        val list = additionalFaceModel?.recentFaceInfoList?.toMutableList() ?: mutableListOf()
+        list.add(faceInfo)
+        if (list.size > FaceModel.RECENT_MAX_SIZE) {
+            list.removeAt(0)
         }
-        Log.w(TAG, "update recent face info failed")
+        updateRecentFaceInfoList(list)
     }
 
 

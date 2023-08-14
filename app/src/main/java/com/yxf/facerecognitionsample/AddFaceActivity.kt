@@ -108,6 +108,7 @@ class AddFaceActivity : AppCompatActivity() {
                 }
             }*/
             .setFaceProcessor(createEmptyFaceProcessor())
+            .saveModelOnDestroy()
             .build()
         faceRecognition.start()
     }

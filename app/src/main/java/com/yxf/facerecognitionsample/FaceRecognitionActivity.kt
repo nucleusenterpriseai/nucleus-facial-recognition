@@ -120,6 +120,7 @@ class FaceRecognitionActivity : AppCompatActivity() {
                 Log.e(TAG, "exception occurred", it)
             }
             .setFaceProcessor(createFaceProcessor())
+            .saveModelOnDestroy()
             .build()
 
         faceRecognition.start()

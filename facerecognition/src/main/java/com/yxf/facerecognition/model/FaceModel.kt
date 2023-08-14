@@ -33,7 +33,7 @@ data class FaceModel(
 
     companion object CREATOR : DataSerializableCreator<FaceModel> {
 
-        const val CURRENT_SOFTWARE_VERSION = 1
+        const val CURRENT_SOFTWARE_VERSION = 2
 
         const val SIMILAR_MAX_SIZE = 30
         const val RECENT_MAX_SIZE = 10

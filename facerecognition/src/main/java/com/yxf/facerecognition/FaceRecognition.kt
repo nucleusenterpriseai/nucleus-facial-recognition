@@ -68,7 +68,7 @@ class FaceRecognition private constructor(private val builder: Builder) {
 
     private val detector = FaceDetection.getClient(builder.options)
 
-    val faceModelManager = FaceModelManager(builder.modelPath, builder.modelId, this)
+    val faceModelManager = FaceModelManager(builder.modelPath, builder.modelId, this, builder.additionalModelPath ?: "${builder.modelPath}.additional")
 
 
     internal fun submitToThreadPool(task: Runnable) {
@@ -193,6 +193,7 @@ class FaceRecognition private constructor(private val builder: Builder) {
         internal lateinit var faceProcessor: FaceProcessor
         internal lateinit var options: FaceDetectorOptions
         internal lateinit var modelPath: String
+        var additionalModelPath: String? = null
         internal var modelId: String = "default"
         internal var exceptionListener: ((e: Throwable) -> Unit)? = null
         internal var processFailedCallback: ((failedHint: String) -> Unit)? = null
@@ -243,6 +244,11 @@ class FaceRecognition private constructor(private val builder: Builder) {
 
         fun setModelPath(path: String): Builder {
             modelPath = path
+            return this
+        }
+
+        fun setAdditionModelPath(path: String): Builder {
+            additionalModelPath = path
             return this
         }
 
