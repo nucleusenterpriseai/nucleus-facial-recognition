@@ -101,7 +101,11 @@ class FaceRecognitionActivity : AppCompatActivity() {
             })
             addPipelineHandler(SaveToPngPipelineHandler(getExternalFilesDir(null)!!.path + "/preview.png", 50, true))
             if (addRecentChecked) {
-                addPipelineHandler(AddRecentFaceInfoPipelineHandler())
+                addPipelineHandler(AddRecentFaceInfoPipelineHandler(10000).also {
+                    it.addFinishCallback = Runnable {
+                        Log.d(TAG, "add finished")
+                    }
+                })
             }
         }
     }
